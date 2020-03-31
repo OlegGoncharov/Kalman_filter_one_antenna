@@ -61,18 +61,23 @@ def Kalman_filter(val, angle, varProcess):
   Xe = G*(val-Zp)+Xp; ## "фильтрованное" значение
   return Xe
 
-end_loop_read = 3000
+def minimum(a,n):
+    minpos = a.index(min(a))
+    return minpos
+
+end_loop_read = 15
 
 std_angle = 0.9768  ## среднее отклонение для фильтра калмана
 
 list_std = list()
-for i in range(1,3000,0.005):
+min_std_list = list()
+for i in range(1,3000):
     i_tic = 0
     varProcess = i*0.005
+    print("Проведение вычислений для Kp = " + str(varProcess))
     angle_arr_1 = list()
     filtered_data_list = list()
     while i_tic<=end_loop_read:  
-            i_tic = i_tic + 1
             try:
                 data = rtlsUtil.aoa_results_queue.get(block=True, timeout=0.5)
                 i_tic = i_tic + 1
@@ -80,16 +85,17 @@ for i in range(1,3000,0.005):
                 angle = data['payload'].angle;
                 if i_tic == 1:
                     angle_est = 0;
-                    filtered_data = Kalman_filter(angle, angle_est, varProcess)
+                    filtered_data_list.append(Kalman_filter(angle, angle_est, varProcess))
                 else:
                     angle_est = filtered_data_list[i_tic-2];
-                    filtered_data = Kalman_filter(angle, angle_est, varProcess)   
-                    filtered_data_list.append(filtered_data)
+                    filtered_data_list.append(Kalman_filter(angle, angle_est, varProcess))   
             except queue.Empty:
                 i_tic = i_tic +1
                 continue
-    list_std[int(i/0.005)] = np.std(filtered_data_list)
-print("Оптимальное значение Kp = " + str(min(list_std)))
+    print("СКО для Kp =" + str(varProcess) +" равно " + str(np.std(filtered_data_list)))
+    min_std_list.append(np.std(filtered_data_list))
+minpos = minimum(min_std_list,len(min_std_list))
+print("Оптимальное значение Kp = " + str(minpos*0.005))
 
 rtlsUtil.aoa_stop()
 if rtlsUtil.ble_connected:
