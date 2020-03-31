@@ -2,7 +2,7 @@ clear; close all; clc;
 
 load('Ant1_one_antennas1.mat')
 alpha = double(alpha);
-figure('units','normalized','outerpos',[0 0 1 1])
+figure
 hold on
 plot(alpha)
 plot(filtered_data)
