@@ -1,18 +1,7 @@
 import queue
 import json
-import pandas as pd
-import matplotlib.pyplot as plt
-import math
-import scipy.io as sio
 import numpy as np
 from rtls_util import RtlsUtil, RtlsUtilLoggingLevel, RtlsUtilException
-from itertools import groupby
-
-
-
-std_angle = 4.27  ## среднее отклонение для фильтра калмана
-varProcess = 5 ## скорость реакции на изменение (подбирается вручную)
-
 
 logging_file = "log.txt"
 rtlsUtil = RtlsUtil(logging_file, RtlsUtilLoggingLevel.ALL)
@@ -32,12 +21,6 @@ except:
     exit()
 rtlsUtil.ble_connect(scan_results[0], 100)
 print("Connection Success")    
-
-
-
-end_loop_read = 30000
-
-
 
 aoa_params = {
                 "aoa_run_mode": "AOA_MODE_ANGLE",  ## AOA_MODE_ANGLE, AOA_MODE_PAIR_ANGLES, AOA_MODE_RAW
@@ -69,7 +52,7 @@ rtlsUtil.aoa_start(cte_length=20, cte_interval=1)
 print("AOA Started")
 
 
-def Kalman_filter(val, angle):
+def Kalman_filter(val, angle, varProcess):
   Pc = angle + varProcess;
   G = Pc/(Pc + std_angle);
   P = (1-G)*Pc;
@@ -78,47 +61,35 @@ def Kalman_filter(val, angle):
   Xe = G*(val-Zp)+Xp; ## "фильтрованное" значение
   return Xe
 
+end_loop_read = 3000
 
+std_angle = 0.9768  ## среднее отклонение для фильтра калмана
 
-
-i_1 = 0
-i_1_list = list()
-angle_arr_1 = list()
-rssi_arr_1 = list()
-channel1_list = list()
-filtered_data_list = list()
-##fig= plt.figure()
-while i_1<=end_loop_read:
-    try:
-        data = rtlsUtil.aoa_results_queue.get(block=True, timeout=0.5)
-        i_1 = i_1 + 1
-        i_1_list.append(i_1)
-        angle_arr_1.append(float(data['payload'].angle))
-        angle = float(data['payload'].angle);
-##        if i_1 == 1:
-##            angle_est = 0;
-##            filtered_data = Kalman_filter(angle, angle_est)
-##        else:
-##            angle_est = filtered_data_list[i_1-2];
-##            filtered_data = Kalman_filter(angle, angle_est)   
-##        filtered_data_list.append(filtered_data)
-
-##        plt.plot(i_1_list,angle_arr_1,color = 'blue')
-##        plt.plot(i_1_list,filtered_data_list,color = 'red')
-####        plt.show()
-##        plt.pause(8/460800)
-####        rssi_arr_1.append(data['payload'].rssi)
-####        channel1_list.append(data['payload'].channel)        
-##        if i_1>100:
-##            plt.xlim(i_1_list[i_1-100], i_1_list[i_1-1])
-    except queue.Empty:
-        continue
-##plt.show()
-
-print(np.std(angle_arr_1))
-##sio.savemat('Ant1_one_antennas.mat', {'alpha':angle_arr_1, 'rssi_1':rssi_arr_1, 'channel1':channel1_list})
-sio.savemat('Ant1_one_antennas.mat', {'alpha':angle_arr_1, 'filtered_data':filtered_data_list})
-
+list_std = list()
+for i in range(1,3000,0.005):
+    i_tic = 0
+    varProcess = i*0.005
+    angle_arr_1 = list()
+    filtered_data_list = list()
+    while i_tic<=end_loop_read:  
+            i_tic = i_tic + 1
+            try:
+                data = rtlsUtil.aoa_results_queue.get(block=True, timeout=0.5)
+                i_tic = i_tic + 1
+                angle_arr_1.append(data['payload'].angle)
+                angle = data['payload'].angle;
+                if i_tic == 1:
+                    angle_est = 0;
+                    filtered_data = Kalman_filter(angle, angle_est, varProcess)
+                else:
+                    angle_est = filtered_data_list[i_tic-2];
+                    filtered_data = Kalman_filter(angle, angle_est, varProcess)   
+                    filtered_data_list.append(filtered_data)
+            except queue.Empty:
+                i_tic = i_tic +1
+                continue
+    list_std[int(i/0.005)] = np.std(filtered_data_list)
+print("Оптимальное значение Kp = " + str(min(list_std)))
 
 rtlsUtil.aoa_stop()
 if rtlsUtil.ble_connected:
