@@ -65,9 +65,9 @@ def minimum(a,n):
     minpos = a.index(min(a))
     return minpos
 
-end_loop_read = 15
+end_loop_read = 1000
 
-std_angle = 0.9768  ## среднее отклонение для фильтра калмана
+std_angle = 1.6195  ## среднее отклонение для фильтра калмана
 
 list_std = list()
 min_std_list = list()

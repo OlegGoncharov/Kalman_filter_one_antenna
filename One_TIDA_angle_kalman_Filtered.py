@@ -10,8 +10,8 @@ from itertools import groupby
 
 
 
-std_angle = 4.27  ## среднее отклонение для фильтра калмана
-varProcess = 5 ## скорость реакции на изменение (подбирается вручную)
+std_angle = 10  ## среднее отклонение для фильтра калмана
+varProcess = 1.3 ## скорость реакции на изменение (подбирается вручную)
 
 
 logging_file = "log.txt"
@@ -35,7 +35,7 @@ print("Connection Success")
 
 
 
-end_loop_read = 30000
+end_loop_read = 300
 
 
 
@@ -95,25 +95,25 @@ while i_1<=end_loop_read:
         i_1_list.append(i_1)
         angle_arr_1.append(float(data['payload'].angle))
         angle = float(data['payload'].angle);
-##        if i_1 == 1:
-##            angle_est = 0;
-##            filtered_data = Kalman_filter(angle, angle_est)
-##        else:
-##            angle_est = filtered_data_list[i_1-2];
-##            filtered_data = Kalman_filter(angle, angle_est)   
-##        filtered_data_list.append(filtered_data)
+        if i_1 == 1:
+            angle_est = 0;
+            filtered_data = Kalman_filter(angle, angle_est)
+        else:
+            angle_est = filtered_data_list[i_1-2];
+            filtered_data = Kalman_filter(angle, angle_est)   
+        filtered_data_list.append(filtered_data)
 
-##        plt.plot(i_1_list,angle_arr_1,color = 'blue')
-##        plt.plot(i_1_list,filtered_data_list,color = 'red')
-####        plt.show()
-##        plt.pause(8/460800)
-####        rssi_arr_1.append(data['payload'].rssi)
-####        channel1_list.append(data['payload'].channel)        
-##        if i_1>100:
-##            plt.xlim(i_1_list[i_1-100], i_1_list[i_1-1])
+        plt.plot(i_1_list,angle_arr_1,color = 'blue')
+        plt.plot(i_1_list,filtered_data_list,color = 'red')
+##        plt.show()
+        plt.pause(8/460800)
+##        rssi_arr_1.append(data['payload'].rssi)
+##        channel1_list.append(data['payload'].channel)        
+        if i_1>100:
+            plt.xlim(i_1_list[i_1-100], i_1_list[i_1-1])
     except queue.Empty:
         continue
-##plt.show()
+plt.show()
 
 print(np.std(angle_arr_1))
 ##sio.savemat('Ant1_one_antennas.mat', {'alpha':angle_arr_1, 'rssi_1':rssi_arr_1, 'channel1':channel1_list})
